@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Curry House POS — Menu</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .page-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem; color: var(--gold-light);
+    }
+    .page-sub { font-size: 0.82rem; color: var(--cream-dim); margin-top: 4px; }
+
+    .menu-layout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 22px;
+      align-items: start;
+    }
+
+    /* ── FORM PANEL ── */
+    .form-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      position: sticky; top: 80px;
+    }
+    .form-panel-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem; color: var(--gold-light);
+      margin-bottom: 20px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .form-grid { display: flex; flex-direction: column; gap: 16px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    .emoji-picker {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+      margin-top: 8px;
+    }
+    .emoji-option {
+      aspect-ratio: 1; border-radius: 8px;
+      border: 2px solid transparent; background: var(--bg-deep);
+      font-size: 1.2rem; cursor: pointer; text-align: center;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .emoji-option:hover { background: var(--bg-hover); }
+    .emoji-option.selected { border-color: var(--gold); background: rgba(212,146,10,0.1); }
+    .emoji-preview {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      background: var(--bg-deep); border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .emoji-preview-icon { font-size: 2rem; }
+
+    /* ── TABLE ── */
+    .table-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .table-toolbar {
+      padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .table-toolbar-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem; color: var(--gold-light);
+    }
+    .table-filters { display: flex; gap: 8px; align-items: center; }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      padding: 11px 16px; text-align: left;
+      font-size: 0.72rem; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--cream-dim);
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--bg-hover); }
+    td {
+      padding: 12px 16px; font-size: 0.84rem; color: var(--cream);
+      vertical-align: middle;
+    }
+    td.name-cell { font-weight: 600; }
+    td.price-cell { color: var(--gold-light); font-weight: 700; }
+    td.actions-cell { display: flex; gap: 8px; align-items: center; }
+
+    .table-empty { padding: 48px 20px; text-align: center; color: var(--cream-dim); }
+    .table-empty .icon { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+
+    .auth-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 14px; border-radius: 20px;
+      font-size: 0.78rem; font-weight: 600;
+    }
+    .auth-pill.logged-in  { background: rgba(22,163,74,0.12); color: #15803d; border: 1px solid rgba(22,163,74,0.28); }
+    .auth-pill.logged-out { background: rgba(29,78,216,0.10); color: #1d4ed8; border: 1px solid rgba(29,78,216,0.22); cursor: pointer; text-decoration: none; }
+    .auth-pill.logged-out:hover { background: rgba(29,78,216,0.18); }
+
+    /* ── CAT FILTER ── */
+    .cat-filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 0; }
+    .cf-tab {
+      padding: 5px 12px; border-radius: 16px; font-size: 0.76rem; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border); color: var(--cream-dim);
+      background: transparent; transition: all 0.15s; font-family: 'DM Sans', sans-serif;
+    }
+    .cf-tab:hover { background: var(--bg-hover); color: var(--cream); }
+    .cf-tab.active { background: var(--gold-dim); color: var(--gold-light); border-color: var(--gold-dim); }
+
+    /* item count per category */
+    .cat-count {
+      font-size: 0.65rem; background: rgba(212,146,10,0.2);
+      color: var(--gold-light); border-radius: 10px; padding: 1px 6px; margin-left: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="topnav">
+  <div class="brand">
+    <div class="brand-icon">🍛</div>
+    <div>
+      <div class="brand-name">Curry House</div>
+      <div class="brand-sub">Point of Sale</div>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link"><span class="icon">🧾</span> Order</a>
+    <a href="menu.html"  class="nav-link active"><span class="icon">🍽️</span> Menu</a>
+    <a href="dashboard.html" class="nav-link"><span class="icon">📊</span> Dashboard</a>
+  </div>
+  <div class="nav-right">
+    <div id="authPill"></div>
+    <div class="clock" id="clock"></div>
+  </div>
+</nav>
+
+<div style="padding:24px 28px; max-width:1400px; margin:0 auto;">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Menu Management</div>
+      <div class="page-sub" id="pageSub">Browse the current menu</div>
+    </div>
+    <button class="btn btn-gold" id="resetMenuBtn" style="display:none;">↺ Reset to Default</button>
+  </div>
+
+  <div class="menu-layout">
+
+    <!-- ── LEFT PANEL: locked or add/edit form ── -->
+    <div id="leftPanel">
+      <!-- Filled by JS based on auth state -->
+    </div>
+
+    <!-- ── MENU TABLE ── -->
+    <div>
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="table-toolbar-title">Menu Items (<span id="menuCount">0</span>)</div>
+          <div class="table-filters">
+            <div style="position:relative;">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--gold-dim);font-size:0.85rem;">🔍</span>
+              <input class="input" id="tableSearch" placeholder="Search…" style="padding-left:30px;width:180px;" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Category filter -->
+        <div style="padding:12px 16px; border-bottom:1px solid var(--border);">
+          <div class="cat-filter-tabs" id="catFilterTabs"></div>
+        </div>
+
+        <div id="tableBody">
+          <table>
+            <thead>
+              <tr>
+                <th>Dish</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Description</th>
+                <th id="actionsColHead"></th>
+              </tr>
+            </thead>
+            <tbody id="menuTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title">Remove Dish?</div>
+    </div>
+    <p style="color:var(--cream-dim);font-size:0.88rem;margin-bottom:24px;">
+      Are you sure you want to remove <strong id="deleteItemName" style="color:var(--cream)"></strong> from the menu? This action cannot be undone.
+    </p>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-outline" style="flex:1" id="cancelDeleteBtn">Cancel</button>
+      <button class="btn btn-danger" style="flex:1" id="confirmDeleteBtn">Remove</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="app.js"></script>
+<script>
+  const EMOJIS = ['🍛','🍗','🥩','🦐','🧀','🥦','🍲','🍚','🥙','🫓','🥟','🧅','🍢','🫕','🥣','🥭','💧','🥤','🍵','🍮','🍦','🍜','🥘','🫔','🌮','🫙','🍝','🧆'];
+
+  const isAdmin = sessionStorage.getItem('ch_admin_auth') === '1';
+
+  let menu      = loadMenu();
+  let filterCat = 'All';
+  let tableQ    = '';
+  let deleteId  = null;
+  let editMode  = false;
+
+  // ── AUTH PILL ──
+  const pill = document.getElementById('authPill');
+  if (isAdmin) {
+    pill.innerHTML = `<div class="auth-pill logged-in">🔓 Admin &nbsp;<button onclick="logout()" style="background:none;border:none;cursor:pointer;color:inherit;font-weight:700;font-size:0.72rem;padding:0;margin-left:4px;">✕ Logout</button></div>`;
+    document.getElementById('pageSub').textContent    = 'Add, edit, or remove dishes from your menu';
+    document.getElementById('resetMenuBtn').style.display = 'inline-flex';
+    document.getElementById('actionsColHead').textContent = 'Actions';
+  } else {
+    pill.innerHTML = `<a href="login.html" class="auth-pill logged-out">🔒 Admin Login</a>`;
+    document.getElementById('pageSub').textContent = 'Login as Admin to add, edit or remove dishes';
+  }
+
+  function logout() {
+    sessionStorage.removeItem('ch_admin_auth');
+    location.reload();
+  }
+
+  // ── INIT ──
+  startClock(document.getElementById('clock'));
+  renderLeftPanel();
+  renderCatFilterTabs();
+  renderTable();
+
+  // ── LEFT PANEL ──
+  function renderLeftPanel() {
+    const panel = document.getElementById('leftPanel');
+
+    if (!isAdmin) {
+      panel.innerHTML = `
+        <div class="form-panel" style="text-align:center;padding:40px 28px;">
+          <div style="font-size:3.5rem;margin-bottom:18px;">🔒</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--gold-light);margin-bottom:10px;">Admin Access Required</div>
+          <div style="font-size:0.84rem;color:var(--cream-dim);line-height:1.7;margin-bottom:28px;">
+            You must be logged in as Admin to add, edit or remove menu items.
+          </div>
+          <a href="login.html" class="btn btn-gold" style="width:100%;justify-content:center;text-decoration:none;">
+            🔑 Login as Admin
+          </a>
+          <div style="margin-top:18px;padding:14px;background:rgba(29,78,216,0.06);border:1px solid var(--border);border-radius:10px;font-size:0.78rem;color:var(--cream-dim);line-height:1.7;">
+            <strong style="color:var(--cream);">Credentials</strong><br/>
+            Username: <strong style="color:var(--gold);">Admin</strong><br/>
+            Password: <strong style="color:var(--gold);">1234</strong>
+          </div>
+        </div>`;
+      return;
+    }
+
+    // Admin: show full form
+    panel.innerHTML = `
+      <div class="form-panel">
+        <div class="form-panel-title" id="formTitle"><span>✚</span> Add New Dish</div>
+        <input type="hidden" id="editId" value="" />
+        <div class="form-grid">
+          <div class="input-group">
+            <label class="input-label">Dish Name *</label>
+            <input class="input" id="fName" placeholder="e.g. Chicken Tikka Masala" />
+          </div>
+          <div class="form-row">
+            <div class="input-group">
+              <label class="input-label">Category *</label>
+              <select class="input" id="fCategory">
+                <option value="">Select…</option>
+                <option>Starters</option><option>Mains</option><option>Breads</option>
+                <option>Sides</option><option>Desserts</option><option>Drinks</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label class="input-label">Price (Rs.) *</label>
+              <input class="input" id="fPrice" type="number" step="50" min="0" placeholder="0.00" />
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Description</label>
+            <input class="input" id="fDesc" placeholder="Short description…" />
+          </div>
+          <div class="input-group">
+            <label class="input-label">Choose Emoji</label>
+            <div class="emoji-preview">
+              <span class="emoji-preview-icon" id="emojiPreview">🍛</span>
+              <span style="font-size:0.78rem;color:var(--cream-dim);">Selected icon</span>
+            </div>
+            <div class="emoji-picker" id="emojiPicker"></div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:8px;">
+            <button class="btn btn-gold" style="flex:1" id="saveItemBtn">Save Dish</button>
+            <button class="btn btn-outline" id="cancelEditBtn" style="display:none">Cancel</button>
+          </div>
+        </div>
+      </div>`;
+
+    buildEmojiPicker();
+    bindFormEvents();
+  }
+
+  // ── EMOJI ──
+  function buildEmojiPicker() {
+    const picker = document.getElementById('emojiPicker');
+    if (!picker) return;
+    picker.innerHTML = EMOJIS.map(e =>
+      `<button class="emoji-option ${e === '🍛' ? 'selected' : ''}" data-emoji="${e}">${e}</button>`
+    ).join('');
+    picker.querySelectorAll('.emoji-option').forEach(btn => {
+      btn.onclick = () => {
+        picker.querySelectorAll('.emoji-option').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        document.getElementById('emojiPreview').textContent = btn.dataset.emoji;
+      };
+    });
+  }
+
+  function getSelectedEmoji() {
+    const sel = document.querySelector('.emoji-option.selected');
+    return sel ? sel.dataset.emoji : '🍛';
+  }
+
+  function setSelectedEmoji(emoji) {
+    document.querySelectorAll('.emoji-option').forEach(b => {
+      b.classList.toggle('selected', b.dataset.emoji === emoji);
+    });
+    const prev = document.getElementById('emojiPreview');
+    if (prev) prev.textContent = emoji;
+  }
+
+  // ── FORM EVENTS ──
+  function bindFormEvents() {
+    document.getElementById('saveItemBtn').onclick = () => {
+      const name     = document.getElementById('fName').value.trim();
+      const cat      = document.getElementById('fCategory').value;
+      const priceStr = document.getElementById('fPrice').value;
+      const desc     = document.getElementById('fDesc').value.trim();
+      const emoji    = getSelectedEmoji();
+
+      if (!name || !cat || !priceStr) { showToast('Please fill all required fields', 'error'); return; }
+      const price = parseFloat(priceStr);
+      if (isNaN(price) || price <= 0) { showToast('Enter a valid price', 'error'); return; }
+
+      const editId = document.getElementById('editId').value;
+      if (editId) {
+        const idx = menu.findIndex(m => m.id === parseInt(editId));
+        if (idx !== -1) { menu[idx] = { ...menu[idx], name, category: cat, price, desc, emoji }; }
+        showToast(`${name} updated ✓`, 'success');
+      } else {
+        const newId = Math.max(...menu.map(m => m.id), 0) + 1;
+        menu.push({ id: newId, name, category: cat, price, desc, emoji });
+        showToast(`${name} added to menu ✓`, 'success');
+      }
+      saveMenu(menu);
+      resetForm();
+      renderTable();
+      renderCatFilterTabs();
+    };
+
+    document.getElementById('cancelEditBtn').onclick = resetForm;
+  }
+
+  function resetForm() {
+    const editId = document.getElementById('editId');
+    if (editId) editId.value = '';
+    const fields = ['fName','fCategory','fPrice','fDesc'];
+    fields.forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+    setSelectedEmoji('🍛');
+    const title = document.getElementById('formTitle');
+    if (title) title.innerHTML = '<span>✚</span> Add New Dish';
+    const cancelBtn = document.getElementById('cancelEditBtn');
+    if (cancelBtn) cancelBtn.style.display = 'none';
+    editMode = false;
+  }
+
+  // ── EDIT ──
+  function startEdit(id) {
+    if (!isAdmin) { showToast('Admin login required', 'error'); return; }
+    const item = menu.find(m => m.id === id);
+    if (!item) return;
+    document.getElementById('editId').value    = id;
+    document.getElementById('fName').value     = item.name;
+    document.getElementById('fCategory').value = item.category;
+    document.getElementById('fPrice').value    = item.price;
+    document.getElementById('fDesc').value     = item.desc || '';
+    setSelectedEmoji(item.emoji || '🍛');
+    document.getElementById('formTitle').innerHTML = '✏️ Edit Dish';
+    document.getElementById('cancelEditBtn').style.display = 'flex';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── DELETE ──
+  function askDelete(id) {
+    if (!isAdmin) { showToast('Admin login required', 'error'); return; }
+    const item = menu.find(m => m.id === id);
+    if (!item) return;
+    deleteId = id;
+    document.getElementById('deleteItemName').textContent = item.name;
+    document.getElementById('deleteModal').classList.add('open');
+  }
+
+  document.getElementById('cancelDeleteBtn').onclick = () => {
+    document.getElementById('deleteModal').classList.remove('open');
+    deleteId = null;
+  };
+
+  document.getElementById('confirmDeleteBtn').onclick = () => {
+    if (!deleteId) return;
+    const item = menu.find(m => m.id === deleteId);
+    menu = menu.filter(m => m.id !== deleteId);
+    saveMenu(menu);
+    renderTable(); renderCatFilterTabs();
+    showToast(`${item?.name || 'Item'} removed`, 'error');
+    document.getElementById('deleteModal').classList.remove('open');
+    deleteId = null;
+  };
+
+  // ── RESET ──
+  document.getElementById('resetMenuBtn').onclick = () => {
+    if (!isAdmin) return;
+    if (!confirm('Reset menu to default? All custom items will be lost.')) return;
+    menu = JSON.parse(JSON.stringify(DEFAULT_MENU));
+    saveMenu(menu);
+    renderTable(); renderCatFilterTabs();
+    resetForm();
+    showToast('Menu reset to default', 'success');
+  };
+
+  // ── CATEGORY FILTER TABS ──
+  function renderCatFilterTabs() {
+    const tabs = document.getElementById('catFilterTabs');
+    const cats = ['All', ...CATEGORIES.filter(c => c !== 'All')];
+    tabs.innerHTML = cats.map(c => {
+      const count = c === 'All' ? menu.length : menu.filter(m => m.category === c).length;
+      return `<button class="cf-tab ${c === filterCat ? 'active' : ''}" data-cat="${c}">
+        ${c}<span class="cat-count">${count}</span>
+      </button>`;
+    }).join('');
+    tabs.querySelectorAll('.cf-tab').forEach(btn => {
+      btn.onclick = () => { filterCat = btn.dataset.cat; renderCatFilterTabs(); renderTable(); };
+    });
+  }
+
+  // ── TABLE ──
+  function renderTable() {
+    let items = filterCat === 'All' ? menu : menu.filter(m => m.category === filterCat);
+    if (tableQ) {
+      const q = tableQ.toLowerCase();
+      items = items.filter(m => m.name.toLowerCase().includes(q) || (m.desc||'').toLowerCase().includes(q));
+    }
+
+    document.getElementById('menuCount').textContent = items.length;
+    const tbody = document.getElementById('menuTableBody');
+
+    if (!items.length) {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="table-empty"><span class="icon">🍽️</span>No items found</div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = items.map(item => {
+      const actionCell = isAdmin
+        ? `<td class="actions-cell">
+             <button class="btn btn-outline btn-sm" data-edit="${item.id}">✏️ Edit</button>
+             <button class="btn btn-danger btn-sm" data-del="${item.id}">🗑️ Remove</button>
+           </td>`
+        : `<td><span class="badge badge-gold" style="cursor:pointer;" onclick="window.location='login.html'">🔒 Login to edit</span></td>`;
+
+      return `
+        <tr>
+          <td class="name-cell">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:1.4rem;">${item.emoji}</span>
+              <span>${item.name}</span>
+            </div>
+          </td>
+          <td><span class="badge badge-saffron">${item.category}</span></td>
+          <td class="price-cell">${fmt(item.price)}</td>
+          <td style="color:var(--cream-dim);font-size:0.8rem;max-width:240px;">${item.desc || '—'}</td>
+          ${actionCell}
+        </tr>`;
+    }).join('');
+
+    if (isAdmin) {
+      tbody.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => startEdit(parseInt(b.dataset.edit)));
+      tbody.querySelectorAll('[data-del]').forEach(b  => b.onclick = () => askDelete(parseInt(b.dataset.del)));
+    }
+  }
+
+  document.getElementById('tableSearch').oninput = e => {
+    tableQ = e.target.value.trim();
+    renderTable();
+  };
+</script>
+
+</body>
+</html>

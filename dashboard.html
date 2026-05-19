@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Curry House POS — Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    .page-wrap { padding: 24px 28px; max-width: 1500px; margin: 0 auto; }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 26px; flex-wrap: wrap; gap: 14px;
+    }
+    .page-title { font-family: 'Playfair Display', serif; font-size: 1.6rem; color: var(--gold-light); }
+    .page-sub   { font-size: 0.82rem; color: var(--cream-dim); margin-top: 4px; }
+    .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    /* ── AUTH PILL ── */
+    .auth-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 14px; border-radius: 20px;
+      font-size: 0.78rem; font-weight: 600;
+    }
+    .auth-pill.logged-in  { background: rgba(22,163,74,0.12); color: #15803d; border: 1px solid rgba(22,163,74,0.28); }
+    .auth-pill.logged-out { background: rgba(29,78,216,0.10); color: #1d4ed8; border: 1px solid rgba(29,78,216,0.22); cursor: pointer; }
+    .auth-pill.logged-out:hover { background: rgba(29,78,216,0.18); }
+
+    /* ── DATE FILTER ── */
+    .date-filter { display: flex; gap: 5px; }
+    .df-btn {
+      padding: 6px 14px; border-radius: 18px; font-size: 0.76rem; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border); color: var(--cream-dim);
+      background: rgba(255,255,255,0.7); transition: all 0.15s;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .df-btn:hover { background: var(--bg-hover); color: var(--cream); }
+    .df-btn.active { background: linear-gradient(135deg,#1d4ed8,#0284c7); color: #fff; border-color: transparent; box-shadow: 0 3px 10px rgba(29,78,216,0.28); }
+
+    /* ── STAT CARDS ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 22px; }
+    @media(max-width:900px){ .stats-grid { grid-template-columns: repeat(2,1fr); } }
+    .stat-card { position: relative; overflow: hidden; }
+    .stat-card::after { content: attr(data-icon); position: absolute; right: 16px; bottom: 10px; font-size: 2.8rem; opacity: 0.07; pointer-events: none; }
+    .stat-delta {
+      font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 12px;
+      display: inline-flex; align-items: center; gap: 3px; margin-top: 2px;
+    }
+    .stat-delta.up   { background: rgba(22,163,74,0.12); color: #16a34a; }
+    .stat-delta.down { background: rgba(220,38,38,0.10); color: #dc2626; }
+
+    /* ── CHART GRID LAYOUTS ── */
+    .grid-3-2 { display: grid; grid-template-columns: 3fr 2fr; gap: 20px; margin-bottom: 20px; }
+    .grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .grid-2   { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .grid-3   { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    @media(max-width:1000px) {
+      .grid-3-2,.grid-2-1,.grid-2,.grid-3 { grid-template-columns: 1fr; }
+    }
+
+    /* ── CHART CARDS ── */
+    .chart-card {
+      background: rgba(255,255,255,0.90); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px 22px 18px;
+      backdrop-filter: blur(8px); box-shadow: 0 2px 14px rgba(59,130,246,0.07);
+      transition: box-shadow 0.2s;
+    }
+    .chart-card:hover { box-shadow: 0 8px 32px rgba(59,130,246,0.14); }
+    .chart-head {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .chart-title {
+      font-family: 'Playfair Display', serif; font-size: 1rem; color: var(--gold-light); font-weight: 600;
+    }
+    .chart-sub { font-size: 0.74rem; color: var(--cream-dim); margin-top: 3px; }
+    .chart-badge { font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 14px; }
+
+    .chart-container { position: relative; }
+    .chart-container.h200 { height: 200px; }
+    .chart-container.h240 { height: 240px; }
+    .chart-container.h260 { height: 260px; }
+    .chart-container.h300 { height: 300px; }
+
+    /* ── TOP ITEMS LIST ── */
+    .top-item-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    .top-item-row:last-child { border-bottom: none; }
+    .top-item-row:hover { background: var(--bg-hover); border-radius: 8px; }
+    .rank-badge {
+      width: 24px; height: 24px; border-radius: 7px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.72rem; font-weight: 800;
+    }
+    .rank-1 { background: linear-gradient(135deg,#f59e0b,#d97706); color:#fff; }
+    .rank-2 { background: linear-gradient(135deg,#94a3b8,#64748b); color:#fff; }
+    .rank-3 { background: linear-gradient(135deg,#cd7c3c,#a05c22); color:#fff; }
+    .rank-n { background: rgba(29,78,216,0.10); color: #1d4ed8; }
+    .top-item-name { flex: 1; font-size: 0.83rem; font-weight: 500; color: var(--cream); }
+    .top-item-bar-wrap { width: 80px; height: 6px; background: rgba(29,78,216,0.10); border-radius: 4px; overflow: hidden; }
+    .top-item-bar { height: 100%; background: linear-gradient(90deg,#1d4ed8,#0ea5e9); border-radius: 4px; transition: width 0.6s ease; }
+    .top-item-rev { font-weight: 700; color: var(--gold); font-size: 0.82rem; min-width: 90px; text-align: right; }
+
+    /* ── SUMMARY MINI STATS ── */
+    .mini-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .mini-stat {
+      background: rgba(29,78,216,0.05); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px;
+    }
+    .mini-stat-label { font-size: 0.7rem; color: var(--cream-dim); text-transform: uppercase; font-weight: 700; letter-spacing: 0.06em; }
+    .mini-stat-value { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; color: var(--gold); margin-top: 4px; }
+
+    /* ── ORDERS TABLE ── */
+    .orders-wrap {
+      background: rgba(255,255,255,0.90); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; margin-bottom: 20px;
+      backdrop-filter: blur(8px); box-shadow: 0 2px 14px rgba(59,130,246,0.07);
+    }
+    .otw-header {
+      padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.6); flex-wrap: wrap; gap: 10px;
+    }
+    .otw-title { font-family: 'Playfair Display', serif; font-size: 1.05rem; color: var(--gold-light); }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      padding: 10px 14px; text-align: left;
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--cream-dim);
+      background: rgba(241,245,249,0.8); border-bottom: 1px solid var(--border);
+    }
+    tbody tr { border-bottom: 1px solid rgba(59,130,246,0.08); transition: background 0.15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(219,234,254,0.35); }
+    td { padding: 10px 14px; font-size: 0.82rem; color: var(--cream); vertical-align: middle; }
+    .table-empty { padding: 50px 20px; text-align: center; color: var(--cream-dim); }
+    .table-empty .icon { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+
+    /* ── EDIT MODAL ── */
+    .edit-section { display: flex; flex-direction: column; gap: 14px; }
+    .edit-items-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+    .edit-item-row {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(241,245,249,0.8); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 12px;
+    }
+    .edit-item-name { flex: 1; font-size: 0.82rem; font-weight: 500; }
+    .edit-qty-input {
+      width: 60px; text-align: center;
+      background: #fff; border: 1.5px solid var(--border);
+      border-radius: 6px; padding: 5px 8px; font-size: 0.82rem;
+      color: var(--cream); font-family: 'DM Sans', sans-serif;
+      outline: none; transition: border-color 0.18s;
+    }
+    .edit-qty-input:focus { border-color: var(--gold); }
+    .edit-item-sub { font-size: 0.78rem; color: var(--gold); font-weight: 700; min-width: 90px; text-align: right; }
+    .edit-totals {
+      background: linear-gradient(135deg, rgba(29,78,216,0.06), rgba(2,132,199,0.04));
+      border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+    }
+    .edit-total-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 0.82rem; }
+    .edit-total-row.grand { font-family: 'Playfair Display', serif; font-size: 1.05rem; color: var(--gold); border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="brand">
+    <div class="brand-icon">🍛</div>
+    <div>
+      <div class="brand-name">Curry House</div>
+      <div class="brand-sub">Point of Sale</div>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link"><span class="icon">🧾</span> Order</a>
+    <a href="menu.html"  class="nav-link"><span class="icon">🍽️</span> Menu</a>
+    <a href="dashboard.html" class="nav-link active"><span class="icon">📊</span> Dashboard</a>
+  </div>
+  <div class="nav-right">
+    <div id="authPill"></div>
+    <div class="clock" id="clock"></div>
+  </div>
+</nav>
+
+<div class="page-wrap">
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">Financial Dashboard</div>
+      <div class="page-sub" id="periodLabel">Loading…</div>
+    </div>
+    <div class="header-right">
+      <div class="date-filter" id="dateFilter">
+        <button class="df-btn active" data-period="today">Today</button>
+        <button class="df-btn" data-period="week">This Week</button>
+        <button class="df-btn" data-period="month">This Month</button>
+        <button class="df-btn" data-period="all">All Time</button>
+      </div>
+      <button class="btn btn-outline btn-sm" id="exportBtn">📥 Export CSV</button>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="stats-grid" id="statsGrid"></div>
+
+  <!-- ROW 1: Revenue Trend + Doughnut -->
+  <div class="grid-3-2">
+    <div class="chart-card">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">Revenue Trend</div>
+          <div class="chart-sub" id="trendSub">Hourly breakdown</div>
+        </div>
+        <span class="badge badge-gold chart-badge" id="trendBadge">Today</span>
+      </div>
+      <div class="chart-container h260"><canvas id="revenueChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">Payment Methods</div>
+          <div class="chart-sub">Revenue by payment type</div>
+        </div>
+      </div>
+      <div class="chart-container h200"><canvas id="paymentChart"></canvas></div>
+      <div id="payLegend" style="margin-top:14px;display:flex;flex-direction:column;gap:7px;"></div>
+    </div>
+  </div>
+
+  <!-- ROW 2: Category Bar + Daily Orders Line -->
+  <div class="grid-2">
+    <div class="chart-card">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">Sales by Category</div>
+          <div class="chart-sub">Revenue contribution per category</div>
+        </div>
+      </div>
+      <div class="chart-container h240"><canvas id="categoryChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title">Orders Overview</div>
+          <div class="chart-sub">Count & average value</div>
+        </div>
+      </div>
+      <div class="chart-container h240"><canvas id="ordersChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 3: Top Items + Mini Stats -->
+  <div class="grid-2-1">
+    <div class="chart-card" style="padding:0;overflow:hidden;">
+      <div class="chart-head" style="padding:18px 18px 14px;">
+        <div>
+          <div class="chart-title">🏆 Top Selling Dishes</div>
+          <div class="chart-sub">Ranked by revenue</div>
+        </div>
+        <span class="badge badge-saffron" id="topCount">—</span>
+      </div>
+      <div id="topItemsList"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div class="chart-card">
+        <div class="chart-head">
+          <div class="chart-title">Quick Summary</div>
+        </div>
+        <div class="mini-stats" id="miniStats"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head">
+          <div><div class="chart-title">Tax & Service</div><div class="chart-sub">Collected amounts</div></div>
+        </div>
+        <div class="chart-container h160" style="height:160px;"><canvas id="taxChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ORDERS TABLE -->
+  <div class="orders-wrap">
+    <div class="otw-header">
+      <div>
+        <div class="otw-title">Order Records</div>
+        <div style="font-size:0.74rem;color:var(--cream-dim);margin-top:2px;" id="tableCount"></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <input class="input" id="orderSearch" placeholder="🔍 Search by order, table…" style="width:200px;" />
+        <select class="input" id="payFilter" style="width:130px;">
+          <option value="">All Payments</option>
+          <option>Cash</option><option>Card</option><option>QR</option>
+        </select>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Order #</th><th>Date & Time</th><th>Table</th><th>Customer</th>
+            <th>Items</th><th>Subtotal</th><th>Service (10%)</th><th>Tax (15%)</th>
+            <th>Total</th><th>Payment</th><th>Status</th><th id="editColHead"></th>
+          </tr>
+        </thead>
+        <tbody id="ordersBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /page-wrap -->
+
+<!-- EDIT ORDER MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal" style="width:560px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Edit Order <span id="editOrderId" style="color:var(--cream-dim);font-size:0.85rem;"></span></div>
+      <button class="btn-icon" id="closeEditBtn">✕</button>
+    </div>
+    <div class="edit-section">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+        <div class="input-group">
+          <label class="input-label">Table No.</label>
+          <input class="input" id="eTable" type="number" min="1" />
+        </div>
+        <div class="input-group">
+          <label class="input-label">Customer</label>
+          <input class="input" id="eCustomer" type="text" />
+        </div>
+        <div class="input-group">
+          <label class="input-label">Payment</label>
+          <select class="input" id="ePayment">
+            <option>Cash</option><option>Card</option><option>QR</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:0.76rem;font-weight:700;color:var(--cream-dim);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Order Items (adjust quantities)</div>
+        <div class="edit-items-list" id="editItemsList"></div>
+      </div>
+
+      <div class="edit-totals" id="editTotals"></div>
+
+      <div style="display:flex;gap:10px;padding-top:4px;">
+        <button class="btn btn-outline" style="flex:1;" id="cancelEditModalBtn">Cancel</button>
+        <button class="btn btn-gold" style="flex:1;" id="saveEditBtn">💾 Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title">🗑️ Delete Order?</div>
+      <button class="btn-icon" id="closeDeleteBtn">✕</button>
+    </div>
+    <p style="color:var(--cream-dim);font-size:0.88rem;margin-bottom:24px;">
+      Permanently delete order <strong id="deleteOrderLabel" style="color:var(--cream);"></strong>?<br/>This will affect your financial totals.
+    </p>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-outline" style="flex:1;" id="cancelDeleteBtn">Cancel</button>
+      <button class="btn btn-danger" style="flex:1;" id="confirmDeleteBtn">Delete Order</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="app.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+//  CURRY HOUSE — DASHBOARD
+// ═══════════════════════════════════════════════════════
+
+const isAdmin = sessionStorage.getItem('ch_admin_auth') === '1';
+
+// ── AUTH PILL ──
+const pill = document.getElementById('authPill');
+if (isAdmin) {
+  pill.innerHTML = `<div class="auth-pill logged-in">🔓 Admin &nbsp;<button onclick="logout()" style="background:none;border:none;cursor:pointer;color:inherit;font-weight:700;font-size:0.72rem;padding:0;margin-left:4px;" title="Logout">✕ Logout</button></div>`;
+  document.getElementById('editColHead').textContent = 'Actions';
+} else {
+  pill.innerHTML = `<a href="login.html" class="auth-pill logged-out">🔒 Admin Login</a>`;
+}
+function logout() {
+  sessionStorage.removeItem('ch_admin_auth');
+  location.reload();
+}
+
+// ── STATE ──
+let activePeriod = 'today';
+let allOrders    = loadOrders();
+let filtered     = [];
+let orderQ       = '';
+let payFilterVal = '';
+let editingOrder = null;
+let deleteId     = null;
+
+// Chart instances
+let revenueChartInst, paymentChartInst, categoryChartInst, ordersChartInst, taxChartInst;
+
+// ── INIT ──
+startClock(document.getElementById('clock'));
+applyPeriod('today');
+
+// ── PERIOD ──
+document.getElementById('dateFilter').querySelectorAll('.df-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.df-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyPeriod(btn.dataset.period);
+  };
+});
+
+function applyPeriod(period) {
+  activePeriod = period;
+  const now = new Date();
+  const sod = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  let from;
+  const labels = { today:'Today', week:'This Week', month:'This Month', all:'All Time' };
+  const subs   = {
+    today: 'Showing today — ' + now.toLocaleDateString('en-LK', { weekday:'long', month:'long', day:'numeric' }),
+    week:  'Showing this week',
+    month: 'Showing ' + now.toLocaleDateString('en-LK', { month:'long', year:'numeric' }),
+    all:   'All-time financial summary',
+  };
+
+  if (period === 'today')      from = sod(now);
+  else if (period === 'week')  { from = new Date(sod(now)); from.setDate(from.getDate() - now.getDay()); }
+  else if (period === 'month') from = new Date(now.getFullYear(), now.getMonth(), 1);
+  else                         from = new Date(0);
+
+  document.getElementById('periodLabel').textContent = subs[period];
+  document.getElementById('trendBadge').textContent   = labels[period];
+  document.getElementById('trendSub').textContent     = period === 'today' ? 'Hourly breakdown' : 'Daily breakdown';
+
+  filtered = allOrders.filter(o => new Date(o.createdAt) >= from);
+  renderAll();
+}
+
+// ── RENDER ──
+function renderAll() {
+  renderStats();
+  renderRevenueChart();
+  renderPaymentChart();
+  renderCategoryChart();
+  renderOrdersChart();
+  renderTaxChart();
+  renderTopItems();
+  renderMiniStats();
+  renderTable();
+}
+
+// ── CHART.JS DEFAULTS ──
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.color = '#475569';
+
+function gradientBlue(ctx, h) {
+  const g = ctx.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,'rgba(29,78,216,0.35)');
+  g.addColorStop(1,'rgba(29,78,216,0.02)');
+  return g;
+}
+function gradientCyan(ctx, h) {
+  const g = ctx.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,'rgba(2,132,199,0.35)');
+  g.addColorStop(1,'rgba(2,132,199,0.02)');
+  return g;
+}
+
+// ── STAT CARDS ──
+function renderStats() {
+  const rev  = filtered.reduce((s,o) => s+o.total,    0);
+  const sub  = filtered.reduce((s,o) => s+o.subtotal,  0);
+  const tax  = filtered.reduce((s,o) => s+o.tax,       0);
+  const svc  = filtered.reduce((s,o) => s+o.service,   0);
+  const cnt  = filtered.length;
+  const avg  = cnt ? rev/cnt : 0;
+  const itms = filtered.reduce((s,o) => s+o.items.reduce((a,i)=>a+i.qty,0), 0);
+
+  document.getElementById('statsGrid').innerHTML = [
+    { label:'Total Revenue',    value: fmt(rev),  sub:'Incl. tax & service', icon:'💰', color:'#1d4ed8' },
+    { label:'Orders Completed', value: cnt,        sub:'Successful transactions', icon:'🧾', color:'#0284c7' },
+    { label:'Avg Order Value',  value: fmt(avg),  sub:'Per transaction', icon:'📈', color:'#0ea5e9' },
+    { label:'Dishes Sold',      value: itms,       sub:'Total quantity', icon:'🍽️', color:'#38bdf8' },
+  ].map(s => `
+    <div class="stat-card card" data-icon="${s.icon}">
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-value" style="color:${s.color}">${s.value}</div>
+      <div class="stat-sub">${s.sub}</div>
+    </div>`).join('');
+}
+
+// ── REVENUE TREND CHART (Line / Bar hybrid) ──
+function renderRevenueChart() {
+  const canvas = document.getElementById('revenueChart');
+  const ctx = canvas.getContext('2d');
+  if (revenueChartInst) revenueChartInst.destroy();
+
+  let labels, data;
+  if (activePeriod === 'today') {
+    // Hourly 8am–11pm
+    labels = Array.from({length:16},(_,i)=> (i+8)+':00');
+    data   = Array(16).fill(0);
+    filtered.forEach(o => {
+      const h = new Date(o.createdAt).getHours();
+      if(h>=8&&h<=23) data[h-8] += o.total;
+    });
+  } else {
+    // Daily for week/month/all — last 14 days max
+    const days = activePeriod === 'week' ? 7 : activePeriod === 'month' ? 30 : 14;
+    labels = []; data = [];
+    const now = new Date();
+    for (let i = days-1; i >= 0; i--) {
+      const d = new Date(now); d.setDate(d.getDate()-i);
+      const key = d.toLocaleDateString('en-LK',{month:'short',day:'numeric'});
+      labels.push(key);
+      const dayTotal = filtered.filter(o => {
+        const od = new Date(o.createdAt);
+        return od.toDateString() === d.toDateString();
+      }).reduce((s,o)=>s+o.total,0);
+      data.push(dayTotal);
+    }
+  }
+
+  const grad = gradientBlue(ctx, 260);
+  revenueChartInst = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Revenue (Rs.)',
+        data,
+        fill: true,
+        backgroundColor: grad,
+        borderColor: '#1d4ed8',
+        borderWidth: 2.5,
+        pointBackgroundColor: '#fff',
+        pointBorderColor: '#1d4ed8',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 7,
+        tension: 0.42,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: { display:false },
+        tooltip: {
+          backgroundColor: 'rgba(255,255,255,0.97)',
+          titleColor: '#0f172a', bodyColor: '#475569',
+          borderColor: 'rgba(59,130,246,0.35)', borderWidth: 1,
+          padding: 12, cornerRadius: 10,
+          callbacks: {
+            label: ctx => ' ' + fmt(ctx.raw),
+            title: t  => '🕐 ' + t[0].label,
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color:'rgba(59,130,246,0.07)' },
+          ticks: { maxRotation:45, font:{ size:11 } }
+        },
+        y: {
+          grid: { color:'rgba(59,130,246,0.07)' },
+          beginAtZero: true,
+          ticks: { callback: v => 'Rs.'+Math.round(v/1000)+'K', font:{ size:11 } }
+        }
+      }
+    }
+  });
+}
+
+// ── PAYMENT DOUGHNUT ──
+function renderPaymentChart() {
+  const canvas = document.getElementById('paymentChart');
+  const ctx = canvas.getContext('2d');
+  if (paymentChartInst) paymentChartInst.destroy();
+
+  const methods = {};
+  filtered.forEach(o => { methods[o.payMethod] = (methods[o.payMethod]||0) + o.total; });
+
+  const labels = Object.keys(methods);
+  const values = Object.values(methods);
+  const total  = values.reduce((a,b)=>a+b,0)||1;
+
+  const COLORS = {
+    Cash: ['#1d4ed8','#3b82f6'],
+    Card: ['#0284c7','#0ea5e9'],
+    QR:   ['#0369a1','#38bdf8'],
+  };
+  const bgColors     = labels.map(l => COLORS[l]?.[0] || '#64748b');
+  const hoverColors  = labels.map(l => COLORS[l]?.[1] || '#94a3b8');
+
+  paymentChartInst = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data: values.length ? values : [1], backgroundColor: values.length ? bgColors : ['#e2e8f0'], hoverBackgroundColor: hoverColors, borderWidth: 3, borderColor: '#fff', hoverBorderColor: '#fff' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '68%',
+      plugins: {
+        legend: { display:false },
+        tooltip: {
+          backgroundColor:'rgba(255,255,255,0.97)', titleColor:'#0f172a', bodyColor:'#475569',
+          borderColor:'rgba(59,130,246,0.35)', borderWidth:1, padding:12, cornerRadius:10,
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${fmt(ctx.raw)} (${Math.round(ctx.raw/total*100)}%)`
+          }
+        }
+      }
+    },
+    plugins: [{
+      id: 'centerText',
+      afterDraw(chart) {
+        const {ctx, width, height} = chart;
+        ctx.save();
+        ctx.font = `700 13px 'DM Sans'`;
+        ctx.fillStyle = '#1d4ed8';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const cx = width/2, cy = height/2;
+        ctx.fillText(fmt(total), cx, cy-8);
+        ctx.font = `500 10px 'DM Sans'`;
+        ctx.fillStyle = '#64748b';
+        ctx.fillText('Total', cx, cy+10);
+        ctx.restore();
+      }
+    }]
+  });
+
+  // Legend
+  const legend = document.getElementById('payLegend');
+  if (!labels.length) { legend.innerHTML = `<div style="color:var(--cream-dim);font-size:0.8rem;text-align:center;">No data yet</div>`; return; }
+  legend.innerHTML = labels.map((l,i) => `
+    <div style="display:flex;align-items:center;gap:8px;font-size:0.8rem;">
+      <div style="width:10px;height:10px;border-radius:3px;background:${bgColors[i]};flex-shrink:0;"></div>
+      <span style="flex:1;color:var(--cream-dim);">${l}</span>
+      <span style="font-weight:700;color:var(--gold);">${fmt(values[i])}</span>
+      <span style="color:var(--cream-dim);font-size:0.72rem;">${Math.round(values[i]/total*100)}%</span>
+    </div>`).join('');
+}
+
+// ── CATEGORY HORIZONTAL BAR ──
+function renderCategoryChart() {
+  const canvas = document.getElementById('categoryChart');
+  const ctx = canvas.getContext('2d');
+  if (categoryChartInst) categoryChartInst.destroy();
+
+  const cats = {};
+  filtered.forEach(o => o.items.forEach(i => { cats[i.category] = (cats[i.category]||0) + i.price*i.qty; }));
+  const sorted = Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+
+  const CAT_COLORS = ['#1d4ed8','#0284c7','#0369a1','#0ea5e9','#38bdf8','#7dd3fc'];
+
+  categoryChartInst = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sorted.map(([k])=>k),
+      datasets: [{
+        label: 'Revenue',
+        data: sorted.map(([,v])=>v),
+        backgroundColor: sorted.map((_,i) => CAT_COLORS[i % CAT_COLORS.length]),
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display:false },
+        tooltip: {
+          backgroundColor:'rgba(255,255,255,0.97)', titleColor:'#0f172a', bodyColor:'#475569',
+          borderColor:'rgba(59,130,246,0.35)', borderWidth:1, padding:12, cornerRadius:10,
+          callbacks: { label: ctx => ' ' + fmt(ctx.raw) }
+        }
+      },
+      scales: {
+        x: { grid:{ color:'rgba(59,130,246,0.07)' }, ticks:{ callback:v=>'Rs.'+Math.round(v/1000)+'K', font:{size:11} }, beginAtZero:true },
+        y: { grid:{ display:false }, ticks:{ font:{size:12} } }
+      }
+    }
+  });
+}
+
+// ── ORDERS OVERVIEW (Grouped bar: subtotal, tax, service per day) ──
+function renderOrdersChart() {
+  const canvas = document.getElementById('ordersChart');
+  const ctx = canvas.getContext('2d');
+  if (ordersChartInst) ordersChartInst.destroy();
+
+  // Group by day (last 7 or fewer days)
+  const dayMap = {};
+  filtered.forEach(o => {
+    const key = new Date(o.createdAt).toLocaleDateString('en-LK',{month:'short',day:'numeric'});
+    if (!dayMap[key]) dayMap[key] = { count:0, total:0 };
+    dayMap[key].count++;
+    dayMap[key].total += o.total;
+  });
+
+  const labels = Object.keys(dayMap);
+  const counts = labels.map(l => dayMap[l].count);
+  const avgs   = labels.map(l => dayMap[l].total / dayMap[l].count);
+
+  ordersChartInst = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels.length ? labels : ['No Data'],
+      datasets: [
+        {
+          label: 'Order Count',
+          data: counts.length ? counts : [0],
+          backgroundColor: 'rgba(29,78,216,0.75)',
+          borderRadius: 5, borderSkipped: false,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Avg Value (Rs.)',
+          data: avgs.length ? avgs : [0],
+          type: 'line',
+          borderColor: '#0ea5e9',
+          backgroundColor: 'rgba(14,165,233,0.12)',
+          borderWidth: 2.5,
+          pointBackgroundColor: '#fff', pointBorderColor: '#0ea5e9', pointBorderWidth: 2, pointRadius: 5,
+          tension: 0.4, fill: true,
+          yAxisID: 'y2',
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: {
+          display: true, position: 'top',
+          labels: { boxWidth:12, padding:16, font:{size:11} }
+        },
+        tooltip: {
+          backgroundColor:'rgba(255,255,255,0.97)', titleColor:'#0f172a', bodyColor:'#475569',
+          borderColor:'rgba(59,130,246,0.35)', borderWidth:1, padding:12, cornerRadius:10,
+          callbacks: {
+            label: ctx => ctx.datasetIndex===0
+              ? ` Orders: ${ctx.raw}`
+              : ` Avg: ${fmt(ctx.raw)}`
+          }
+        }
+      },
+      scales: {
+        x: { grid:{color:'rgba(59,130,246,0.07)'}, ticks:{font:{size:11}} },
+        y:  { grid:{color:'rgba(59,130,246,0.07)'}, beginAtZero:true, ticks:{font:{size:11}}, position:'left',
+              title:{display:true, text:'Orders', font:{size:10}} },
+        y2: { grid:{display:false}, beginAtZero:true, position:'right',
+              ticks:{callback:v=>'Rs.'+Math.round(v/1000)+'K', font:{size:10}},
+              title:{display:true, text:'Avg Value', font:{size:10}} }
+      }
+    }
+  });
+}
+
+// ── TAX & SERVICE PIE ──
+function renderTaxChart() {
+  const canvas = document.getElementById('taxChart');
+  const ctx = canvas.getContext('2d');
+  if (taxChartInst) taxChartInst.destroy();
+
+  const sub  = filtered.reduce((s,o)=>s+o.subtotal,0);
+  const tax  = filtered.reduce((s,o)=>s+o.tax,     0);
+  const svc  = filtered.reduce((s,o)=>s+o.service,  0);
+
+  taxChartInst = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: ['Subtotal','Tax (15%)','Service (10%)'],
+      datasets: [{
+        data: [sub||1, tax, svc],
+        backgroundColor: ['#1d4ed8','#0284c7','#38bdf8'],
+        hoverBackgroundColor: ['#1e40af','#0369a1','#0ea5e9'],
+        borderWidth: 2, borderColor: '#fff',
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position:'right', labels:{ boxWidth:12, padding:10, font:{size:10} } },
+        tooltip: {
+          backgroundColor:'rgba(255,255,255,0.97)', titleColor:'#0f172a', bodyColor:'#475569',
+          borderColor:'rgba(59,130,246,0.35)', borderWidth:1, padding:10, cornerRadius:10,
+          callbacks: { label: ctx => ` ${fmt(ctx.raw)}` }
+        }
+      }
+    }
+  });
+}
+
+// ── TOP ITEMS ──
+function renderTopItems() {
+  const map = {};
+  filtered.forEach(o => o.items.forEach(i => {
+    if(!map[i.name]) map[i.name]={name:i.name,emoji:i.emoji,qty:0,rev:0};
+    map[i.name].qty += i.qty;
+    map[i.name].rev += i.price*i.qty;
+  }));
+  const top = Object.values(map).sort((a,b)=>b.rev-a.rev).slice(0,8);
+  const maxRev = top[0]?.rev||1;
+
+  document.getElementById('topCount').textContent = top.length + ' items';
+  const list = document.getElementById('topItemsList');
+  if (!top.length) { list.innerHTML=`<div class="table-empty"><span class="icon">🍽️</span>No sales yet</div>`; return; }
+
+  list.innerHTML = top.map((item,i)=>{
+    const rankClass = ['rank-1','rank-2','rank-3'][i] || 'rank-n';
+    return `
+      <div class="top-item-row">
+        <div class="rank-badge ${rankClass}">${i+1}</div>
+        <span style="font-size:1.25rem;">${item.emoji}</span>
+        <div class="top-item-name">${item.name}</div>
+        <div class="top-item-bar-wrap"><div class="top-item-bar" style="width:${Math.round(item.rev/maxRev*100)}%"></div></div>
+        <span style="font-size:0.74rem;color:var(--cream-dim);min-width:28px;text-align:center;">×${item.qty}</span>
+        <div class="top-item-rev">${fmt(item.rev)}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── MINI STATS ──
+function renderMiniStats() {
+  const cnt = filtered.length || 1;
+  const sub = filtered.reduce((s,o)=>s+o.subtotal,0);
+  const tax = filtered.reduce((s,o)=>s+o.tax,     0);
+  const svc = filtered.reduce((s,o)=>s+o.service,  0);
+  const tables = new Set(filtered.map(o=>o.tableNo)).size;
+  const items  = filtered.reduce((s,o)=>s+o.items.reduce((a,i)=>a+i.qty,0),0);
+
+  document.getElementById('miniStats').innerHTML = [
+    { label:'Net Subtotal',  value: fmt(sub) },
+    { label:'Total Tax',     value: fmt(tax) },
+    { label:'Service Fees',  value: fmt(svc) },
+    { label:'Tables Served', value: tables   },
+    { label:'Items Sold',    value: items    },
+    { label:'Avg/Order',     value: fmt(sub/cnt) },
+  ].map(s=>`
+    <div class="mini-stat">
+      <div class="mini-stat-label">${s.label}</div>
+      <div class="mini-stat-value">${s.value}</div>
+    </div>`).join('');
+}
+
+// ── TABLE ──
+function renderTable() {
+  let orders = [...filtered].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  if (orderQ) {
+    const q = orderQ.toLowerCase();
+    orders = orders.filter(o =>
+      String(o.id).includes(q) || String(o.tableNo).includes(q) ||
+      (o.customer||'').toLowerCase().includes(q)
+    );
+  }
+  if (payFilterVal) orders = orders.filter(o=>o.payMethod===payFilterVal);
+
+  document.getElementById('tableCount').textContent = orders.length + ' record' + (orders.length!==1?'s':'') + ' found';
+
+  const PAY_ICONS = { Cash:'💵', Card:'💳', QR:'📲' };
+  const tbody = document.getElementById('ordersBody');
+
+  if (!orders.length) {
+    tbody.innerHTML = `<tr><td colspan="12"><div class="table-empty"><span class="icon">🧾</span>No records found</div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = orders.map(o => {
+    const dt = new Date(o.createdAt);
+    const dateStr = dt.toLocaleDateString('en-LK',{month:'short',day:'numeric',year:'numeric'});
+    const timeStr = dt.toLocaleTimeString('en-LK',{hour:'2-digit',minute:'2-digit'});
+    const itemQty = o.items.reduce((s,i)=>s+i.qty,0);
+    const adminCols = isAdmin
+      ? `<td style="white-space:nowrap;display:flex;gap:6px;">
+           <button class="btn btn-outline btn-sm" data-edit="${o.id}" style="padding:5px 10px;">✏️</button>
+           <button class="btn btn-danger btn-sm" data-del="${o.id}" style="padding:5px 10px;">🗑️</button>
+         </td>`
+      : `<td></td>`;
+
+    return `
+      <tr>
+        <td><span class="badge badge-gold">#${o.id}</span></td>
+        <td style="color:var(--cream-dim);font-size:0.78rem;">${dateStr}<br/><strong style="color:var(--cream)">${timeStr}</strong></td>
+        <td><span style="font-weight:700;font-size:0.9rem;">${o.tableNo||'—'}</span></td>
+        <td style="color:var(--cream-dim);">${o.customer||'Walk-in'}</td>
+        <td><span class="badge badge-saffron">${itemQty} item${itemQty!==1?'s':''}</span></td>
+        <td style="font-weight:600;">${fmt(o.subtotal)}</td>
+        <td style="color:var(--cream-dim);">${fmt(o.service)}</td>
+        <td style="color:var(--cream-dim);">${fmt(o.tax)}</td>
+        <td style="font-weight:800;color:var(--gold);">${fmt(o.total)}</td>
+        <td>${PAY_ICONS[o.payMethod]||''} ${o.payMethod}</td>
+        <td><span class="badge badge-green">✓ ${o.status}</span></td>
+        ${adminCols}
+      </tr>`;
+  }).join('');
+
+  if (isAdmin) {
+    tbody.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => openEdit(parseInt(b.dataset.edit)));
+    tbody.querySelectorAll('[data-del]').forEach(b  => b.onclick = () => openDelete(parseInt(b.dataset.del)));
+  }
+}
+
+document.getElementById('orderSearch').oninput = e => { orderQ = e.target.value.trim(); renderTable(); };
+document.getElementById('payFilter').onchange  = e => { payFilterVal = e.target.value; renderTable(); };
+
+// ── EXPORT ──
+document.getElementById('exportBtn').onclick = () => {
+  if (!filtered.length) { showToast('No data to export','error'); return; }
+  const hdr = ['Order#','Date','Time','Table','Customer','Subtotal','Service','Tax','Total','Payment','Status'];
+  const rows = filtered.map(o => {
+    const dt = new Date(o.createdAt);
+    return [o.id,dt.toLocaleDateString(),dt.toLocaleTimeString(),o.tableNo||'',o.customer||'Walk-in',
+      o.subtotal.toFixed(2),o.service.toFixed(2),o.tax.toFixed(2),o.total.toFixed(2),o.payMethod,o.status].join(',');
+  });
+  const blob = new Blob([[hdr.join(','),...rows].join('\n')],{type:'text/csv'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a'); a.href=url; a.download=`curry-house-${activePeriod}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV exported ✓','success');
+};
+
+// ════════════════════════════════
+// EDIT ORDER (Admin only)
+// ════════════════════════════════
+function openEdit(id) {
+  if (!isAdmin) return;
+  const o = allOrders.find(x=>x.id===id);
+  if (!o) return;
+  editingOrder = JSON.parse(JSON.stringify(o)); // deep copy
+
+  document.getElementById('editOrderId').textContent = '#' + id;
+  document.getElementById('eTable').value    = o.tableNo || '';
+  document.getElementById('eCustomer').value = o.customer || '';
+  document.getElementById('ePayment').value  = o.payMethod;
+  renderEditItems();
+  document.getElementById('editModal').classList.add('open');
+}
+
+function renderEditItems() {
+  const list = document.getElementById('editItemsList');
+  list.innerHTML = editingOrder.items.map((item,i) => `
+    <div class="edit-item-row">
+      <span style="font-size:1.2rem;">${item.emoji}</span>
+      <div class="edit-item-name">${item.name}</div>
+      <input class="edit-qty-input" type="number" min="0" max="50" value="${item.qty}" data-idx="${i}" />
+      <div class="edit-item-sub" data-sub="${i}">${fmt(item.price*item.qty)}</div>
+    </div>`).join('');
+
+  list.querySelectorAll('.edit-qty-input').forEach(inp => {
+    inp.oninput = () => {
+      const idx = parseInt(inp.dataset.idx);
+      const qty = Math.max(0, parseInt(inp.value)||0);
+      editingOrder.items[idx].qty = qty;
+      list.querySelector(`[data-sub="${idx}"]`).textContent = fmt(editingOrder.items[idx].price * qty);
+      renderEditTotals();
+    };
+  });
+  renderEditTotals();
+}
+
+function renderEditTotals() {
+  const active = editingOrder.items.filter(i=>i.qty>0);
+  const { subtotal, tax, service, total } = calcOrderTotals(active);
+  document.getElementById('editTotals').innerHTML = `
+    <div class="edit-total-row"><span style="color:var(--cream-dim)">Subtotal</span><span>${fmt(subtotal)}</span></div>
+    <div class="edit-total-row"><span style="color:var(--cream-dim)">Service (10%)</span><span>${fmt(service)}</span></div>
+    <div class="edit-total-row"><span style="color:var(--cream-dim)">Tax (15%)</span><span>${fmt(tax)}</span></div>
+    <div class="edit-total-row grand"><span>Total</span><span>${fmt(total)}</span></div>`;
+}
+
+document.getElementById('saveEditBtn').onclick = () => {
+  const active = editingOrder.items.filter(i=>i.qty>0);
+  if (!active.length) { showToast('Order must have at least 1 item','error'); return; }
+
+  const { subtotal, tax, service, total } = calcOrderTotals(active);
+  const idx = allOrders.findIndex(o=>o.id===editingOrder.id);
+  if (idx === -1) return;
+
+  allOrders[idx] = {
+    ...allOrders[idx],
+    items:    active,
+    subtotal, tax, service, total,
+    tableNo:  document.getElementById('eTable').value || allOrders[idx].tableNo,
+    customer: document.getElementById('eCustomer').value || allOrders[idx].customer,
+    payMethod:document.getElementById('ePayment').value,
+  };
+  saveOrders(allOrders);
+  filtered = filtered.map(o => o.id===editingOrder.id ? allOrders[idx] : o);
+  document.getElementById('editModal').classList.remove('open');
+  renderAll();
+  showToast(`Order #${editingOrder.id} updated ✓`, 'success');
+};
+
+document.getElementById('closeEditBtn').onclick =
+document.getElementById('cancelEditModalBtn').onclick = () => {
+  document.getElementById('editModal').classList.remove('open');
+  editingOrder = null;
+};
+
+// ════════════════════════════════
+// DELETE ORDER (Admin only)
+// ════════════════════════════════
+function openDelete(id) {
+  if (!isAdmin) return;
+  deleteId = id;
+  document.getElementById('deleteOrderLabel').textContent = '#' + id;
+  document.getElementById('deleteModal').classList.add('open');
+}
+
+document.getElementById('closeDeleteBtn').onclick =
+document.getElementById('cancelDeleteBtn').onclick = () => {
+  document.getElementById('deleteModal').classList.remove('open');
+  deleteId = null;
+};
+
+document.getElementById('confirmDeleteBtn').onclick = () => {
+  if (!deleteId) return;
+  allOrders = allOrders.filter(o=>o.id!==deleteId);
+  saveOrders(allOrders);
+  filtered = filtered.filter(o=>o.id!==deleteId);
+  document.getElementById('deleteModal').classList.remove('open');
+  renderAll();
+  showToast(`Order #${deleteId} deleted`,'error');
+  deleteId = null;
+};
+</script>
+</body>
+</html>

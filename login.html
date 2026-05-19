@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Curry House POS — Admin Login</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+
+    .login-wrap {
+      width: 420px; max-width: 95vw;
+      animation: fadeUp 0.5s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-card {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(59,130,246,0.25);
+      border-radius: 20px;
+      padding: 44px 40px;
+      box-shadow: 0 24px 64px rgba(29,78,216,0.18), 0 2px 8px rgba(59,130,246,0.10);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .login-logo {
+      text-align: center; margin-bottom: 30px;
+    }
+    .login-logo .icon-wrap {
+      width: 72px; height: 72px; margin: 0 auto 14px;
+      background: linear-gradient(135deg, #1d4ed8, #0284c7);
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      box-shadow: 0 8px 28px rgba(29,78,216,0.35);
+      animation: pulseGlow 3s ease-in-out infinite;
+    }
+    @keyframes pulseGlow {
+      0%,100% { box-shadow: 0 8px 28px rgba(29,78,216,0.35); }
+      50%      { box-shadow: 0 8px 36px rgba(29,78,216,0.60); }
+    }
+    .login-logo h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.7rem; color: #1e40af; font-weight: 700;
+    }
+    .login-logo p {
+      font-size: 0.8rem; color: #64748b; margin-top: 4px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+
+    .login-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.15rem; color: #0f172a;
+      margin-bottom: 6px; text-align: center;
+    }
+    .login-sub {
+      font-size: 0.8rem; color: #64748b; text-align: center; margin-bottom: 28px;
+    }
+
+    .field { margin-bottom: 18px; }
+    .field label {
+      display: block; font-size: 0.76rem; font-weight: 700;
+      color: #475569; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 7px;
+    }
+    .field-inner {
+      position: relative;
+    }
+    .field-icon {
+      position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+      font-size: 1rem; pointer-events: none;
+    }
+    .field input {
+      width: 100%; padding: 12px 13px 12px 40px;
+      background: rgba(241,245,249,0.9);
+      border: 1.5px solid rgba(59,130,246,0.20);
+      border-radius: 10px; color: #0f172a;
+      font-family: 'DM Sans', sans-serif; font-size: 0.95rem;
+      outline: none; transition: all 0.2s;
+    }
+    .field input:focus {
+      border-color: #1d4ed8; background: #fff;
+      box-shadow: 0 0 0 4px rgba(29,78,216,0.09);
+    }
+    .field input::placeholder { color: #94a3b8; }
+
+    .toggle-pw {
+      position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      font-size: 1rem; color: #94a3b8; padding: 0;
+    }
+    .toggle-pw:hover { color: #1d4ed8; }
+
+    .error-msg {
+      background: rgba(220,38,38,0.08); border: 1px solid rgba(220,38,38,0.25);
+      border-left: 3px solid #dc2626;
+      border-radius: 8px; padding: 10px 14px;
+      color: #dc2626; font-size: 0.83rem;
+      margin-bottom: 18px; display: none;
+      animation: shake 0.35s ease;
+    }
+    .error-msg.show { display: block; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%,60%  { transform: translateX(-6px); }
+      40%,80%  { transform: translateX(6px); }
+    }
+
+    .login-btn {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, #1d4ed8, #0284c7);
+      color: #fff; border: none; border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.04em;
+      box-shadow: 0 4px 16px rgba(29,78,216,0.32);
+      transition: all 0.2s; position: relative; overflow: hidden;
+    }
+    .login-btn:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(29,78,216,0.40); }
+    .login-btn:active { transform: translateY(0); }
+    .login-btn .btn-shimmer {
+      position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.22) 50%, transparent 100%);
+      transform: translateX(-100%);
+      transition: transform 0.5s;
+    }
+    .login-btn:hover .btn-shimmer { transform: translateX(100%); }
+
+    .login-hint {
+      text-align: center; margin-top: 20px;
+      font-size: 0.78rem; color: #94a3b8;
+    }
+    .login-hint a { color: #1d4ed8; text-decoration: none; font-weight: 600; }
+    .login-hint a:hover { text-decoration: underline; }
+
+    .decorative-dots {
+      position: absolute; width: 160px; height: 160px;
+      background-image: radial-gradient(circle, rgba(29,78,216,0.12) 1.5px, transparent 1.5px);
+      background-size: 18px 18px;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .dot-tl { top: -40px; left: -40px; }
+    .dot-br { bottom: -40px; right: -40px; }
+  </style>
+</head>
+<body>
+
+<div class="wave-bar"></div>
+
+<div class="login-wrap">
+  <div class="login-card" style="position:relative;overflow:hidden;">
+    <div class="decorative-dots dot-tl"></div>
+    <div class="decorative-dots dot-br"></div>
+
+    <div class="login-logo">
+      <div class="icon-wrap">🍛</div>
+      <h1>Curry House</h1>
+      <p>Point of Sale System</p>
+    </div>
+
+    <div class="login-title">Admin Access</div>
+    <div class="login-sub">Sign in to manage financial records</div>
+
+    <div class="error-msg" id="errorMsg">⚠️ Incorrect username or password. Please try again.</div>
+
+    <div class="field">
+      <label>Username</label>
+      <div class="field-inner">
+        <span class="field-icon">👤</span>
+        <input type="text" id="username" placeholder="Enter username" autocomplete="username" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Password</label>
+      <div class="field-inner">
+        <span class="field-icon">🔒</span>
+        <input type="password" id="password" placeholder="Enter password" autocomplete="current-password" id="pwInput" />
+        <button class="toggle-pw" id="togglePw" tabindex="-1">👁️</button>
+      </div>
+    </div>
+
+    <button class="login-btn" id="loginBtn">
+      <span class="btn-shimmer"></span>
+      Sign In to Dashboard
+    </button>
+
+    <div class="login-hint">
+      <a href="index.html">← Back to POS Order Screen</a>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="app.js"></script>
+<script>
+  const ADMIN_USER = 'Admin';
+  const ADMIN_PASS = '1234';
+
+  // If already logged in, go straight to dashboard
+  if (sessionStorage.getItem('ch_admin_auth') === '1') {
+    window.location.href = 'dashboard.html';
+  }
+
+  const usernameEl = document.getElementById('username');
+  const passwordEl = document.getElementById('password');
+  const loginBtn   = document.getElementById('loginBtn');
+  const errorMsg   = document.getElementById('errorMsg');
+  const togglePw   = document.getElementById('togglePw');
+
+  togglePw.onclick = () => {
+    const isPw = passwordEl.type === 'password';
+    passwordEl.type = isPw ? 'text' : 'password';
+    togglePw.textContent = isPw ? '🙈' : '👁️';
+  };
+
+  function doLogin() {
+    const user = usernameEl.value.trim();
+    const pass = passwordEl.value;
+    errorMsg.classList.remove('show');
+
+    if (user === ADMIN_USER && pass === ADMIN_PASS) {
+      sessionStorage.setItem('ch_admin_auth', '1');
+      loginBtn.textContent = '✓ Redirecting…';
+      loginBtn.style.background = 'linear-gradient(135deg,#16a34a,#15803d)';
+      setTimeout(() => window.location.href = 'dashboard.html', 600);
+    } else {
+      errorMsg.classList.add('show');
+      passwordEl.value = '';
+      passwordEl.focus();
+      // Remove and re-add to replay shake
+      errorMsg.classList.remove('show');
+      void errorMsg.offsetWidth;
+      errorMsg.classList.add('show');
+    }
+  }
+
+  loginBtn.onclick = doLogin;
+  [usernameEl, passwordEl].forEach(el => {
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  });
+</script>
+</body>
+</html>
