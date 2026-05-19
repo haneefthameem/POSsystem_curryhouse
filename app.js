@@ -108,45 +108,7 @@ function startClock(el) {
 // ── CATEGORIES ──
 const CATEGORIES = ['All', 'Starters', 'Mains', 'Breads', 'Sides', 'Desserts', 'Drinks'];
 
-// ── SEED DEMO ORDERS (if none exist) ──
-function seedDemoOrders() {
-  const existing = loadOrders();
-  if (existing.length > 0) return;
 
-  const menu = loadMenu();
-  const statuses = ['Completed', 'Completed', 'Completed', 'Completed', 'Completed'];
-  const now = Date.now();
-  const orders = [];
-
-  const picks = [
-    [5,11,21], [6,13,22], [1,2,7], [8,15,12], [9,14],
-    [3,10,16], [18,19,23], [5,6,11,22], [4,7,15], [2,8,17,20]
-  ];
-
-  picks.forEach((ids, i) => {
-    const items = ids.map(id => {
-      const item = menu.find(m => m.id === id);
-      if (!item) return null;
-      return { ...item, qty: Math.ceil(Math.random() * 2) };
-    }).filter(Boolean);
-
-    const totals = calcOrderTotals(items);
-    const hoursAgo = (picks.length - i) * 1.5;
-
-    orders.push({
-      id: 100 + i,
-      items,
-      ...totals,
-      tableNo: Math.ceil(Math.random() * 12),
-      payMethod: ['Cash','Card','Card','Cash','Card'][i % 5],
-      status: 'Completed',
-      createdAt: new Date(now - hoursAgo * 3600000).toISOString(),
-    });
-  });
-
-  saveOrders(orders);
-  saveNextId(200);
-}
 
 // Init on load — clear legacy USD data on first LKR load
 (function clearLegacyData() {
@@ -158,7 +120,7 @@ function seedDemoOrders() {
     localStorage.setItem('ch_lkr_v1', '1');
   }
 }());
-seedDemoOrders();
+// seedDemoOrders(); // disabled: do not auto-create demo transaction history
 
 // ── INJECT WAVE BAR & FLOATING BUBBLES ──
 (function injectAnimations() {
